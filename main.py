@@ -13,6 +13,7 @@ BUTTONS = ["/правила", "/статистика", '/ТОП', '/играть
 bot = telebot.TeleBot(TOKEN)
 MOVES = [['+1', '+2', '+3', '+4', '+2', '+3'], ['*2', '*2', '*2', '*3', '*4']]
 DATASET = {}
+GAME = {}
 STOP = False
 x = set()
 
@@ -74,8 +75,9 @@ def top(message: Message):
     print(df)
     df = df.loc[df['result_game'] == 1]
     df = df.groupby('name').count()
+    df = df.loc[:, ['name', 'result_game']]
+    df.sort_values(by=['result_game'])
     bot.send_message(message.from_user.id, text=str(df))
-    print(df)
 
 
 @bot.message_handler(commands=["статистика"])
@@ -83,13 +85,16 @@ def stats(message: Message):
     con = sqlite3.connect("db/stats.db")
     df = pd.read_sql("SELECT * from users", con)
     df = df.loc[df['id_player'] == message.from_user.id]
-    print(df)
+    df = df.loc[:, ['name',
+                    'result_game',
+                    'game_date']]
     bot.send_message(message.from_user.id, text=str(df))
 
 
 @bot.message_handler(commands=["играть"])
 def game(message: Message):
     try:
+        GAME[message.from_user.id] = True
         move1 = choice(MOVES[0])
         move2 = choice(MOVES[1])
         a, b = randint(5, 20), randint(5, 20)
@@ -116,7 +121,7 @@ def game(message: Message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback(call: CallbackQuery):
     try:
-        if call.message:
+        if call.message and GAME[call.from_user.id]:
             if call.from_user.id in DATASET:
                 data = DATASET[call.from_user.id]
             else:
@@ -142,6 +147,7 @@ def callback(call: CallbackQuery):
                     data['a'] = eval('{}{}'.format(data['a'], data['move1']))
                     if data['a'] + data['b'] >= data['s']:
                         bot.send_message(call.from_user.id, 'Вы выиграли, поздравляю')
+                        GAME[call.from_user.id] = False
                         add_play(1, call)
                         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
                         butts = []
@@ -156,6 +162,7 @@ def callback(call: CallbackQuery):
                     data['b'] = eval('{}{}'.format(data['b'], data['move1']))
                     if data['a'] + data['b'] >= data['s']:
                         bot.send_message(call.from_user.id, 'Вы выиграли, поздравляю')
+                        GAME[call.from_user.id] = False
                         add_play(1, call)
                         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
                         butts = []
@@ -171,6 +178,7 @@ def callback(call: CallbackQuery):
                     data['b'] = eval('{}{}'.format(data['b'], data['move2']))
                     if data['a'] + data['b'] >= data['s']:
                         bot.send_message(call.from_user.id, 'Вы выиграли, поздравляю')
+                        GAME[call.from_user.id] = False
                         add_play(1, call)
                         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
                         butts = []
@@ -185,6 +193,7 @@ def callback(call: CallbackQuery):
                     data['a'] = eval('{}{}'.format(data['a'], data['move2']))
                     if data['a'] + data['b'] >= data['s']:
                         bot.send_message(call.from_user.id, 'Вы выиграли, поздравляю')
+                        GAME[call.from_user.id] = False
                         add_play(1, call)
                         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
                         butts = []
@@ -217,6 +226,7 @@ def my_step(message):
         bot.send_message(message.from_user.id, text_mes, reply_markup=types.ReplyKeyboardRemove())
         if data['a'] + data['b'] >= data['s']:
             bot.send_message(message.from_user.id, 'Я выиграл, это было понятно в начале игры')
+            GAME[message.from_user.id] = False
             add_play(0, message)
 
             markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
