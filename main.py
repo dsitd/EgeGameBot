@@ -96,7 +96,7 @@ def game(message: Message):
         move1 = choice(MOVES[0])
         move2 = choice(MOVES[1])
         a, b = randint(5, 20), randint(5, 20)
-        s = eval('({}+{}{}){}+50'.format(a, b, move1, move2))
+        s = eval('({}+{}{}){}+90'.format(a, b, move1, move2))
         DATASET[message.from_user.id] = {'a': a, 'b': b, 'move1': move1, 'move2': move2, 's': s, 'sel': ''}
         text_mes = """1 куча: {}
     2 куча: {}
@@ -144,7 +144,7 @@ def callback(call: CallbackQuery):
                 if data['sel'] == '1':
                     data['a'] = eval('{}{}'.format(data['a'], data['move1']))
                     if data['a'] + data['b'] >= data['s']:
-                        bot.send_message(call.from_user.id, 'Вы выиграли, поздравляю')
+
                         add_play(1, call)
                         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
                         butts = []
@@ -158,7 +158,7 @@ def callback(call: CallbackQuery):
                 else:
                     data['b'] = eval('{}{}'.format(data['b'], data['move1']))
                     if data['a'] + data['b'] >= data['s']:
-                        bot.send_message(call.from_user.id, 'Вы выиграли, поздравляю')
+
                         add_play(1, call)
                         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
                         butts = []
@@ -173,7 +173,7 @@ def callback(call: CallbackQuery):
                 if data['sel'] == '2':
                     data['b'] = eval('{}{}'.format(data['b'], data['move2']))
                     if data['a'] + data['b'] >= data['s']:
-                        bot.send_message(call.from_user.id, 'Вы выиграли, поздравляю')
+
                         add_play(1, call)
                         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
                         butts = []
@@ -187,7 +187,7 @@ def callback(call: CallbackQuery):
                 else:
                     data['a'] = eval('{}{}'.format(data['a'], data['move2']))
                     if data['a'] + data['b'] >= data['s']:
-                        bot.send_message(call.from_user.id, 'Вы выиграли, поздравляю')
+
                         add_play(1, call)
                         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
                         butts = []
@@ -334,14 +334,19 @@ def right_step(nums: list, moves: list, m: int):  # nums:[10, 13] moves:['+3', '
         return (0, moves[0])
 
 
-def add_play(bool, messege: Message):
-    user = User()
-    user.name = messege.from_user.username
-    user.id_player = messege.from_user.id
-    user.result_game = bool
-    db_sess = db_session.create_session()
-    db_sess.add(user)
-    db_sess.commit()
+def add_play(bool, message: Message):
+    if 'haha_loser' in DATASET[message.from_user.id]:
+        bot.send_message(message.from_user.id, 'а вот по всяким кнопочкам нажимать не нужно')
+    else:
+        bot.send_message(message.from_user.id, 'Вы выиграли, поздравляю')
+        DATASET[message.from_user.id]['haha_loser'] = True
+        user = User()
+        user.name = message.from_user.username
+        user.id_player = message.from_user.id
+        user.result_game = bool
+        db_sess = db_session.create_session()
+        db_sess.add(user)
+        db_sess.commit()
 
 
 bot.polling()
