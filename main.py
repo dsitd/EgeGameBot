@@ -13,7 +13,6 @@ BUTTONS = ["/правила", "/статистика", '/ТОП', '/играть
 bot = telebot.TeleBot(TOKEN)
 MOVES = [['+1', '+2', '+3', '+4', '+2', '+3'], ['*2', '*2', '*2', '*3', '*4']]
 DATASET = {}
-GAME = {}
 STOP = False
 x = set()
 
@@ -48,12 +47,8 @@ def rules(message: Message):
     После чего ход перейдёт к другому игроку
     Побеждает тот у кого первого сумма камней будет >= S"""
         bot.send_message(message.from_user.id, rule_text)
-        rule_text = """После нажатия на кнопку играть, 
-    вам будет предложен выбор, между рейтинговой игрой и без
-    В рейтинговой игре, параметры подбираются случайно, и ваши игры попадают в статистику
-    В обычной игры, вы саме можете выбирать все параметры и ваши победы не будут учитываться.
-    Во время рейтинговой игры нельзя вводить команды, 
-    можно нажимать только на предложенные, не то бот засчитает поражение"""
+        rule_text = "После нажатия на кнопку играть,распределяются параметры, " \
+                    "выводится информация вам на экран и предлагает выбрать сначала кучу, потом действие"
         bot.send_message(message.from_user.id, rule_text)
         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
         butts = []
@@ -72,12 +67,18 @@ def rules(message: Message):
 def top(message: Message):
     con = sqlite3.connect("db/stats.db")
     df = pd.read_sql("SELECT * from users", con)
-    print(df)
     df = df.loc[df['result_game'] == 1]
     df = df.groupby('name').count()
-    df = df.loc[:, ['name', 'result_game']]
-    df.sort_values(by=['result_game'])
-    bot.send_message(message.from_user.id, text=str(df))
+    df = df.loc[:, ['result_game', 'game_date']]
+    s = ''
+    x = []
+    for i in df.index:
+        x.append([df.loc[i]['result_game'], i])
+    x.sort(reverse=True)
+    print(x)
+    for i in x:
+        s += '{} - {}\n'.format(i[1], i[0])
+    bot.send_message(message.from_user.id, text=str(s))
 
 
 @bot.message_handler(commands=["статистика"])
@@ -85,16 +86,13 @@ def stats(message: Message):
     con = sqlite3.connect("db/stats.db")
     df = pd.read_sql("SELECT * from users", con)
     df = df.loc[df['id_player'] == message.from_user.id]
-    df = df.loc[:, ['name',
-                    'result_game',
-                    'game_date']]
+    df = df.loc[:, ['result_game']]
     bot.send_message(message.from_user.id, text=str(df))
 
 
 @bot.message_handler(commands=["играть"])
 def game(message: Message):
     try:
-        GAME[message.from_user.id] = True
         move1 = choice(MOVES[0])
         move2 = choice(MOVES[1])
         a, b = randint(5, 20), randint(5, 20)
@@ -121,7 +119,7 @@ def game(message: Message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback(call: CallbackQuery):
     try:
-        if call.message and GAME[call.from_user.id]:
+        if call.message:
             if call.from_user.id in DATASET:
                 data = DATASET[call.from_user.id]
             else:
@@ -147,7 +145,6 @@ def callback(call: CallbackQuery):
                     data['a'] = eval('{}{}'.format(data['a'], data['move1']))
                     if data['a'] + data['b'] >= data['s']:
                         bot.send_message(call.from_user.id, 'Вы выиграли, поздравляю')
-                        GAME[call.from_user.id] = False
                         add_play(1, call)
                         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
                         butts = []
@@ -162,7 +159,6 @@ def callback(call: CallbackQuery):
                     data['b'] = eval('{}{}'.format(data['b'], data['move1']))
                     if data['a'] + data['b'] >= data['s']:
                         bot.send_message(call.from_user.id, 'Вы выиграли, поздравляю')
-                        GAME[call.from_user.id] = False
                         add_play(1, call)
                         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
                         butts = []
@@ -178,7 +174,6 @@ def callback(call: CallbackQuery):
                     data['b'] = eval('{}{}'.format(data['b'], data['move2']))
                     if data['a'] + data['b'] >= data['s']:
                         bot.send_message(call.from_user.id, 'Вы выиграли, поздравляю')
-                        GAME[call.from_user.id] = False
                         add_play(1, call)
                         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
                         butts = []
@@ -193,7 +188,6 @@ def callback(call: CallbackQuery):
                     data['a'] = eval('{}{}'.format(data['a'], data['move2']))
                     if data['a'] + data['b'] >= data['s']:
                         bot.send_message(call.from_user.id, 'Вы выиграли, поздравляю')
-                        GAME[call.from_user.id] = False
                         add_play(1, call)
                         markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
                         butts = []
@@ -216,8 +210,10 @@ def my_step(message):
         x = set()
         STOP = False
         data = DATASET[message.from_user.id]
-        lucky_step([data['a'], data['b']], message)
-        converter(message)
+        step = right_step([data['a'], data['b']], [data['move1'], data['move2']], data['s'])
+        d = {'0': 'a', '1': 'b'}
+        data[d[str(step[0])]] = eval(str(data[d[str(step[0])]]) + step[1])
+        bot.send_message(message.from_user.id, 'Я выберу {}ую кучу, и действие {}'.format(step[0] + 1, step[1]))
         a, b, move1, move2, s, sep = [data[i] for i in data]
         text_mes = """1 куча: {}
         2 куча: {}
@@ -225,8 +221,7 @@ def my_step(message):
         Итоговая сумма: {}""".format(a, b, move1, move2, s)
         bot.send_message(message.from_user.id, text_mes, reply_markup=types.ReplyKeyboardRemove())
         if data['a'] + data['b'] >= data['s']:
-            bot.send_message(message.from_user.id, 'Я выиграл, это было понятно в начале игры')
-            GAME[message.from_user.id] = False
+            bot.send_message(message.from_user.id, 'Может у вас и был шанс, но вы его упустили')
             add_play(0, message)
 
             markup = types.ReplyKeyboardMarkup()  # инициализируем начальные кнопки
@@ -293,6 +288,50 @@ def lucky_step(box, message, k=0, steps=None):
         print('непредвиденная ошибка', s)
         bot.send_message(message.from_user.id, 'непредвиденная ошибка, попробуйте заново')
         start(message)
+
+
+def right_step(nums: list, moves: list, m: int):  # nums:[10, 13] moves:['+3', '+4'] m:30
+    from random import choice
+
+    # nums = [10, 13]
+    # moves = ['+3', '+4']
+    # m = 30
+    steps = []
+
+    def f(data, big, moves, s=[], k=0):
+        if k > 3 or sum(data) >= big:
+            steps.append(s + [sum(data) >= big])
+        else:
+            for i in moves:
+                for j in range(len(data)):
+                    new = [0, 0]
+                    new[j] = eval(str(data[j]) + i)
+                    new[(j + 1) % 2] = data[(j + 1) % 2]
+                    f(new, big, moves, s=s + [(j, i)], k=k + 1)
+
+    f(nums, m, moves)
+    steps.sort(key=lambda x: len(x))
+    new_steps = steps[:]
+    for i, elem in enumerate(steps):
+        if elem in new_steps:
+            if elem[-1] is True:
+                if len(elem) % 2 == 1:
+                    x = []
+                    for j in new_steps:
+                        if j[:len(elem) - 2] != elem[:len(elem) - 2]:
+                            x.append(j)
+                    new_steps = x[:]
+    if len(new_steps) != 0:
+        min_len = len(new_steps[0])
+        t = []
+        for i in new_steps:
+            if len(i) == min_len:
+                t.append(i)
+            else:
+                break
+        return choice(t)[0]
+    else:
+        return (0, moves[0])
 
 
 def add_play(bool, messege: Message):
