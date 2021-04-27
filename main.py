@@ -338,7 +338,8 @@ def add_play(bool, message: Message):
     if 'haha_loser' in DATASET[message.from_user.id]:
         bot.send_message(message.from_user.id, 'а вот по всяким кнопочкам нажимать не нужно')
     else:
-        bot.send_message(message.from_user.id, 'Вы выиграли, поздравляю')
+        if bool == 1:
+            bot.send_message(message.from_user.id, 'Вы выиграли, поздравляю')
         DATASET[message.from_user.id]['haha_loser'] = True
         user = User()
         user.name = message.from_user.username
