@@ -86,6 +86,7 @@ def top(message: Message):
     else:
         bot.send_message(message.from_user.id, 'Никто пока не выиграл')
 
+
 @bot.message_handler(commands=["статистика"])
 def stats(message: Message):
     con = sqlite3.connect("db/stats.db")
@@ -93,10 +94,18 @@ def stats(message: Message):
     print(df)
     df = df.loc[df['id_player'] == message.from_user.id]
     df = df.loc[:, ['result_game']]
-    if not df.empty:
-        bot.send_message(message.from_user.id, text=str(df))
+    s = ''
+    x = []
+    for i in df.index:
+        x.append(df.loc[i]['result_game'])
+    for i, j in enumerate(x):
+        s += '{} - {}\n'.format(i, j)
+    s += '{}/{}'.format(x.count(1), len(x))
+    if s:
+        bot.send_message(message.from_user.id, text=str(s))
     else:
         bot.send_message(message.from_user.id, 'статистики нет')
+
 
 @bot.message_handler(commands=["играть"])
 def game(message: Message):
