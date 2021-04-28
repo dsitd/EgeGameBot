@@ -78,8 +78,10 @@ def top(message: Message):
     print(x)
     for i in x:
         s += '{} - {}\n'.format(i[1], i[0])
-    bot.send_message(message.from_user.id, text=str(s))
-
+    if s:
+        bot.send_message(message.from_user.id, text=str(s))
+    else:
+        bot.send_message(message.from_user.id, 'статистики нет')
 
 @bot.message_handler(commands=["статистика"])
 def stats(message: Message):
@@ -87,8 +89,10 @@ def stats(message: Message):
     df = pd.read_sql("SELECT * from users", con)
     df = df.loc[df['id_player'] == message.from_user.id]
     df = df.loc[:, ['result_game']]
-    bot.send_message(message.from_user.id, text=str(df))
-
+    if df:
+        bot.send_message(message.from_user.id, text=str(df))
+    else:
+        bot.send_message(message.from_user.id, 'статистики нет')
 
 @bot.message_handler(commands=["играть"])
 def game(message: Message):
