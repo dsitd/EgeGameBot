@@ -89,10 +89,7 @@ def stats(message: Message):
     df = pd.read_sql("SELECT * from users", con)
     df = df.loc[df['id_player'] == message.from_user.id]
     df = df.loc[:, ['result_game']]
-    if df:
-        bot.send_message(message.from_user.id, text=str(df.empty))
-    else:
-        bot.send_message(message.from_user.id, 'статистики нет')
+    bot.send_message(message.from_user.id, text=str(df.empty))
 
 @bot.message_handler(commands=["играть"])
 def game(message: Message):
