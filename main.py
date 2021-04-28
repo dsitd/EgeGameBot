@@ -84,7 +84,7 @@ def top(message: Message):
     if s:
         bot.send_message(message.from_user.id, text=str(s))
     else:
-        bot.send_message(message.from_user.id, 'статистики нет')
+        bot.send_message(message.from_user.id, 'Никто пока не выиграл')
 
 @bot.message_handler(commands=["статистика"])
 def stats(message: Message):
@@ -93,7 +93,10 @@ def stats(message: Message):
     print(df)
     df = df.loc[df['id_player'] == message.from_user.id]
     df = df.loc[:, ['result_game']]
-    bot.send_message(message.from_user.id, text=str(df))
+    if not df.empty:
+        bot.send_message(message.from_user.id, text=str(df))
+    else:
+        bot.send_message(message.from_user.id, 'статистики нет')
 
 @bot.message_handler(commands=["играть"])
 def game(message: Message):
