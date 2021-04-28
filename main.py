@@ -67,6 +67,7 @@ def rules(message: Message):
 def top(message: Message):
     con = sqlite3.connect("db/stats.db")
     df = pd.read_sql("SELECT * from users", con)
+    print(df)
     df = df.loc[df['result_game'] == 1]
     df = df.groupby('name').count()
     df = df.loc[:, ['result_game', 'game_date']]
@@ -75,7 +76,6 @@ def top(message: Message):
     for i in df.index:
         x.append([df.loc[i]['result_game'], i])
     x.sort(reverse=True)
-    print(x)
     for i in x:
         s += '{} - {}\n'.format(i[1], i[0])
     if s:
@@ -87,9 +87,10 @@ def top(message: Message):
 def stats(message: Message):
     con = sqlite3.connect("db/stats.db")
     df = pd.read_sql("SELECT * from users", con)
+    print(df)
     df = df.loc[df['id_player'] == message.from_user.id]
     df = df.loc[:, ['result_game']]
-    bot.send_message(message.from_user.id, text=str(df.empty))
+    bot.send_message(message.from_user.id, text=str(df))
 
 @bot.message_handler(commands=["играть"])
 def game(message: Message):
