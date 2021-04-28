@@ -76,9 +76,10 @@ def top(message: Message):
     print(df)
     s = ''
     x = []
-    for i in df.index:
-        x.append([df.loc[i]['result_game'], i])
-    x.sort(reverse=True)
+    if len(df.index) > 2:
+        for i in df.index[1:]:
+            x.append([df.loc[i]['result_game'], i])
+        x.sort(reverse=True)
     for i in x:
         s += '{} - {}\n'.format(i[1], i[0])
     if s:
