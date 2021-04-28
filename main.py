@@ -69,8 +69,11 @@ def top(message: Message):
     df = pd.read_sql("SELECT * from users", con)
     print(df)
     df = df.loc[df['result_game'] == 1]
+    print(df)
     df = df.groupby('name').count()
+    print(df)
     df = df.loc[:, ['result_game', 'game_date']]
+    print(df)
     s = ''
     x = []
     for i in df.index:
